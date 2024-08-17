@@ -26,7 +26,7 @@ class Buffer(ABC):
         # Create the buffer as a NumPy array with the specified shape and dtype
         self._buffer = np.zeros(shape=(self._size,) + self._shape, dtype=dtype, order=self._order)
 
-    def write(self, item: np.ndarray) -> bool:
+    def write(self, item: tuple | list | np.ndarray) -> bool:
         """
         Write an item to the buffer at the current write pointer position and advance the pointer.
 
