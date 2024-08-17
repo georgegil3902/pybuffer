@@ -1,5 +1,7 @@
-from typing import Union, Optional
 import numpy as np
+
+from typing import Union, Optional
+
 from buffer import Buffer
 
 class StateBuffer(Buffer):
