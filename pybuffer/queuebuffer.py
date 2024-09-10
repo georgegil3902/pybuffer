@@ -15,7 +15,7 @@ class QueueBuffer(Buffer):
         super().__init__(size=size, shape=shape)
         self._over_write = over_write
 
-    def write(self, item: tuple | list | np.ndarray) -> bool:
+    def _write_operation(self, item: tuple | list | np.ndarray) -> bool:
         """
         Insert an item into the queue buffer.
         
@@ -47,7 +47,7 @@ class QueueBuffer(Buffer):
 
         return True
 
-    def read(self) -> np.ndarray | None:
+    def _read_operation(self) -> np.ndarray | None:
         """
         Read and remove the front item from the queue buffer.
         

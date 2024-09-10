@@ -1,40 +1,72 @@
+import inspect
 import numpy as np
 from abc import ABC, abstractmethod
 from typing import Union, Tuple
 
 class Buffer(ABC):
+    """
+    An abstract base class for a buffer system, allowing subclasses to define
+    the specific behavior for reading and writing to the buffer. Automations
+    (such as logging or validation) can be attached to be triggered before and
+    after read/write operations.
+    """
+    
     # Constants to define the memory layout order
     C, F, A, K = "C", "F", "A", "K"
+    BEFORE_WRITE, AFTER_WRITE, BEFORE_READ, AFTER_READ = 0, 1, 2, 3
 
     def __init__(self, size: int, shape: Tuple[int, ...], dtype: np.dtype = np.float64, order: str = C) -> None:
         """
-        Initialize the buffer with a specific size, shape, data type, and memory order.
-
-        Parameters:
-        - size (int): Number of elements the buffer can hold.
-        - shape (tuple): Shape of each element in the buffer (e.g., a 1D array with shape (3,) or 2D array with shape (3, 3)).
-        - dtype (np.dtype): Data type of the elements (default: np.float64).
-        - order (str): Memory layout order, e.g., 'C' (row-major), 'F' (column-major), 'A' (Any), or 'K' (keep layout) (default: 'C').
+        Initialize the buffer with the specified size, shape, data type, and memory order.
         """
         self._size = size
         self._shape = shape
         self._dtype = dtype
         self._order = order
 
-        self._write_pointer = 0  # Pointer indicating the next position to write
-        self._read_pointer = 0   # Pointer indicating the next position to read
+        self._write_pointer = 0
+        self._read_pointer = 0
 
-        # Create the buffer as a NumPy array with the specified shape and dtype
         self._buffer = np.zeros(shape=(self._size,) + self._shape, dtype=dtype, order=self._order)
 
-        self.automations = []
+        # Dictionary to store automation functions for each event
+        self.automations = {
+            self.BEFORE_WRITE: [],
+            self.AFTER_WRITE: [],
+            self.BEFORE_READ: [],
+            self.AFTER_READ: [],
+        }
+
+    def write(self, item: Union[tuple, list, np.ndarray]) -> bool:
+        """
+        Write operation with automation triggers, but actual implementation is delegated to subclass.
+        """
+        self._trigger_automations(self.BEFORE_WRITE)
+        success = self._write_operation(item)  # Subclass defines how the actual write happens
+        self._trigger_automations(self.AFTER_WRITE)
+        return success
+
+    def read(self) -> np.ndarray:
+        """
+        Read operation with automation triggers, but actual implementation is delegated to subclass.
+        """
+        self._trigger_automations(self.BEFORE_READ)
+        item = self._read_operation()  # Subclass defines how the actual read happens
+        self._trigger_automations(self.AFTER_READ)
+        return item
 
     @abstractmethod
-    def write(self, item: Union[tuple, list, np.ndarray]) -> bool:
+    def _write_operation(self, item: Union[tuple, list, np.ndarray]) -> bool:
+        """
+        Subclass must implement this method to define how writing happens.
+        """
         pass
 
     @abstractmethod
-    def read(self) -> np.ndarray:
+    def _read_operation(self) -> np.ndarray:
+        """
+        Subclass must implement this method to define how reading happens.
+        """
         pass
 
     def _advance_write_pointer(self) -> None:
@@ -65,6 +97,61 @@ class Buffer(ABC):
         """
         self._read_pointer = (self._read_pointer - 1) % self._size
 
+    def _trigger_automations(self, event: int) -> None:
+        """
+        Trigger automations for a given event (BEFORE/AFTER READ/WRITE).
+        """
+        for condition, function in self.automations[event]:
+            if condition is None or condition(self):
+                function(self)
+
+    def _check_function_signature(self, function: callable) -> bool:
+        """
+        Check if the function signature is valid (i.e., it accepts exactly one argument for 'self').
+
+        Parameters:
+        - function (callable): The function to check.
+
+        Returns:
+        - bool: True if the function accepts one argument, False otherwise.
+        """
+        try:
+            # Get the signature of the function
+            sig = inspect.signature(function)
+            parameters = sig.parameters
+
+            # Check if the function has exactly one parameter (which should be 'self')
+            if len(parameters) == 1:
+                return True
+            else:
+                return False
+        except ValueError:
+            # In case the function signature cannot be inspected (e.g., if it's a built-in function)
+            return False
+
+    def add_automation(self, function: callable, when: int, condition: callable = None):
+        """
+        Add an automation function that will be triggered on a specific event.
+
+        Parameters:
+        - function (callable): The function to call when the event occurs.
+        - when (int): The event type (BEFORE_WRITE, AFTER_WRITE, BEFORE_READ, AFTER_READ).
+        - condition (callable): A condition function that must return True for the automation to trigger.
+
+        Raises:
+        - ValueError: If the 'when' parameter is not valid or the function signature is invalid.
+        """
+        if when not in [self.BEFORE_READ, self.BEFORE_WRITE, self.AFTER_READ, self.AFTER_WRITE]:
+            raise ValueError("Invalid event type for automation.")
+        
+        # Check if the function signature is valid (i.e., accepts one argument for 'self')
+        if not self._check_function_signature(function):
+            raise ValueError("The automation function must accept exactly one argument (self / Buffer instance).")
+        
+        # Add the automation if the function signature is valid
+        if function not in self.automations[when]:
+            self.automations[when].append((condition, function))
+
     @property
     def size(self) -> int:
         """
@@ -86,6 +173,7 @@ class Buffer(ABC):
         return self._shape
 
     @property
+    @abstractmethod
     def is_empty(self) -> bool:
         """
         Check if the buffer is empty.
@@ -96,6 +184,7 @@ class Buffer(ABC):
         return self._write_pointer == self._read_pointer and not self.is_full
 
     @property
+    @abstractmethod
     def is_full(self) -> bool:
         """
         Check if the buffer is full.
@@ -106,6 +195,3 @@ class Buffer(ABC):
         # The buffer is full if the write pointer is at the same position as the read pointer
         # and the element at the read pointer is not the default zero (indicating that it has been written to).
         return self._write_pointer == self._read_pointer and self._buffer[self._read_pointer].any()
-
-    def add_automation(self):
-        pass
