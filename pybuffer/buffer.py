@@ -27,53 +27,15 @@ class Buffer(ABC):
         # Create the buffer as a NumPy array with the specified shape and dtype
         self._buffer = np.zeros(shape=(self._size,) + self._shape, dtype=dtype, order=self._order)
 
+        self.automations = []
+
+    @abstractmethod
     def write(self, item: Union[tuple, list, np.ndarray]) -> bool:
-        """
-        Write an item to the buffer at the current write pointer position and advance the pointer.
+        pass
 
-        Parameters:
-        - item (Union[tuple, list, np.ndarray]): The item to write to the buffer.
-
-        Returns:
-        - bool: True if the write operation is successful.
-
-        Raises:
-        - ValueError: If the item's shape does not match the buffer's shape.
-        - TypeError: If the item's type is not compatible with the buffer.
-        """
-        # Check the shape and type of the item before writing
-        if self._shape:
-            if isinstance(item, (list, tuple)):
-                item = np.array(item, dtype=self._dtype)
-            if isinstance(item, np.ndarray):
-                if item.shape != self._shape:
-                    raise ValueError(f"Expected data of shape {self._shape}, but got {item.shape}.")
-            else:
-                raise TypeError("Expected input to be of type tuple, list, or ndarray.")
-        else:
-            if not isinstance(item, (int, float, str)):
-                raise TypeError("Expected input to be of type int, float, or str.")
-
-        # Write the item to the buffer and advance the write pointer
-        self._buffer[self._write_pointer] = item
-        self._advance_write_pointer()
-        return True
-
+    @abstractmethod
     def read(self) -> np.ndarray:
-        """
-        Read an item from the buffer at the current read pointer position and advance the pointer.
-
-        Returns:
-        - np.ndarray: The item read from the buffer.
-
-        Raises:
-        - RuntimeError: If the buffer is empty and there's nothing to read.
-        """
-        if self.is_empty:
-            raise RuntimeError("Buffer is empty, cannot read.")
-        item = self._buffer[self._read_pointer]
-        self._advance_read_pointer()
-        return item
+        pass
 
     def _advance_write_pointer(self) -> None:
         """
@@ -145,11 +107,5 @@ class Buffer(ABC):
         # and the element at the read pointer is not the default zero (indicating that it has been written to).
         return self._write_pointer == self._read_pointer and self._buffer[self._read_pointer].any()
 
-    @abstractmethod
-    def automate(self) -> None:
-        """
-        Abstract method to be implemented by subclasses for automation tasks.
-
-        This method is intended to update or manage the buffer's behavior or contents automatically.
-        """
+    def add_automation(self):
         pass
