@@ -2,7 +2,7 @@ import numpy as np
 
 from typing import Union, Optional
 
-from buffer import Buffer
+from .buffer import Buffer
 
 class StateBuffer(Buffer):
     def __init__(self, size: int, shape: tuple, namespace: Optional[tuple[str]] = None) -> None:

@@ -1,5 +1,6 @@
+from typing import Union
 import numpy as np
-from buffer import Buffer
+from .buffer import Buffer
 
 class QueueBuffer(Buffer):
     def __init__(self, size: int, shape: tuple | None = None, over_write: bool = False) -> None:
@@ -15,7 +16,7 @@ class QueueBuffer(Buffer):
         super().__init__(size=size, shape=shape)
         self._over_write = over_write
 
-    def _write_operation(self, item: tuple | list | np.ndarray) -> bool:
+    def _write_operation(self, item: Union[tuple, list, np.ndarray]) -> bool:
         """
         Insert an item into the queue buffer.
         
@@ -47,7 +48,7 @@ class QueueBuffer(Buffer):
 
         return True
 
-    def _read_operation(self) -> np.ndarray | None:
+    def _read_operation(self) -> Union[np.ndarray, None]:
         """
         Read and remove the front item from the queue buffer.
         

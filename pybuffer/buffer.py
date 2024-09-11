@@ -24,6 +24,9 @@ class Buffer(ABC):
         self._dtype = dtype
         self._order = order
 
+        self._isfull = False
+        self._isempty = True
+
         self._write_pointer = 0
         self._read_pointer = 0
 
@@ -69,6 +72,13 @@ class Buffer(ABC):
         """
         pass
 
+    @abstractmethod
+    def get_buffer(self):
+        """
+        Function that returns the entire buffer
+        """
+        pass
+    
     def _advance_write_pointer(self) -> None:
         """
         Advance the write pointer to the next position in the buffer, wrapping around if necessary.
@@ -173,7 +183,6 @@ class Buffer(ABC):
         return self._shape
 
     @property
-    @abstractmethod
     def is_empty(self) -> bool:
         """
         Check if the buffer is empty.
@@ -181,10 +190,9 @@ class Buffer(ABC):
         Returns:
         - bool: True if the buffer is empty, False otherwise.
         """
-        return self._write_pointer == self._read_pointer and not self.is_full
+        return self._isempty
 
     @property
-    @abstractmethod
     def is_full(self) -> bool:
         """
         Check if the buffer is full.
@@ -194,4 +202,4 @@ class Buffer(ABC):
         """
         # The buffer is full if the write pointer is at the same position as the read pointer
         # and the element at the read pointer is not the default zero (indicating that it has been written to).
-        return self._write_pointer == self._read_pointer and self._buffer[self._read_pointer].any()
+        return self._isfull

@@ -2,7 +2,7 @@ import numpy as np
 
 from typing import Tuple, Union
 
-from buffer import Buffer
+from .buffer import Buffer
 
 class RingBuffer(Buffer):
     def __init__(self, size: int, shape: Tuple[int, ...], dtype: np.dtype = np.float64) -> None:
@@ -31,24 +31,5 @@ class RingBuffer(Buffer):
         self._advance_read_pointer()
         return item
 
-    @property
-    def is_empty(self) -> bool:
-        """
-        Check if the buffer is empty.
-
-        Returns:
-        - bool: True if the buffer is empty, False otherwise.
-        """
-        return self._write_pointer == self._read_pointer and not self.is_full
-
-    @property
-    def is_full(self) -> bool:
-        """
-        Check if the buffer is full.
-
-        Returns:
-        - bool: True if the buffer is full, False otherwise.
-        """
-        # The buffer is full if the write pointer is at the same position as the read pointer
-        # and the element at the read pointer is not the default zero (indicating that it has been written to).
-        return self._write_pointer == self._read_pointer and self._buffer[self._read_pointer].any()
+    def get_buffer(self):
+        return self._buffer[self._write_pointer:self._size] + self._buffer[0:self._write_pointer]
