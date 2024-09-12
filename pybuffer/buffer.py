@@ -31,6 +31,7 @@ class Buffer(ABC):
         self._read_pointer = 0
 
         self._buffer = np.zeros(shape=(self._size,) + self._shape, dtype=dtype, order=self._order)
+        self._automation_results = {}
 
         # Dictionary to store automation functions for each event
         self.automations = {
@@ -111,9 +112,20 @@ class Buffer(ABC):
         """
         Trigger automations for a given event (BEFORE/AFTER READ/WRITE).
         """
-        for condition, function in self.automations[event]:
+        for condition, function, result_column in self.automations[event]:
             if condition is None or condition(self):
-                function(self)
+                result = function(self)
+                if result_column is not None:
+                    if event == self.AFTER_WRITE:
+                        self._automation_results[result_column][self._write_pointer - 1] = result
+                    elif event== self.AFTER_READ:
+                        self._automation_results[result_column][self._read_pointer - 1] = result
+                    elif event== self.BEFORE_WRITE:
+                        self._automation_results[result_column][self._write_pointer] = result
+                    elif event== self.BEFORE_READ:
+                        self._automation_results[result_column][self._read_pointer] = result
+
+
 
     def _check_function_signature(self, function: callable) -> bool:
         """
@@ -139,7 +151,7 @@ class Buffer(ABC):
             # In case the function signature cannot be inspected (e.g., if it's a built-in function)
             return False
 
-    def add_automation(self, function: callable, when: int, condition: callable = None):
+    def add_automation(self, function: callable, when: int, condition: callable = None, store_result_as: str = None):
         """
         Add an automation function that will be triggered on a specific event.
 
@@ -160,7 +172,13 @@ class Buffer(ABC):
         
         # Add the automation if the function signature is valid
         if function not in self.automations[when]:
-            self.automations[when].append((condition, function))
+            self.automations[when].append((condition, function, store_result_as))
+            if store_result_as is not None:
+                self._add_automation_results_column(store_result_as)
+
+    def _add_automation_results_column(self, name):
+        _new_column = np.zeros(shape=(self._size,1), dtype=self._dtype, order=self._order)
+        self._automation_results[name] = _new_column
 
     @property
     def size(self) -> int:

@@ -17,6 +17,11 @@ class RingBuffer(Buffer):
             raise ValueError(f"Item shape {item.shape} does not match buffer element shape {self._shape}")
 
         self._buffer[self._write_pointer] = item
+        if self.is_empty:
+            self._isempty = False
+        elif self._write_pointer == self._read_pointer:
+                self._isfull = True
+        
         if self.is_full:
             self._advance_read_pointer()
         self._advance_write_pointer()
@@ -29,6 +34,9 @@ class RingBuffer(Buffer):
         
         item = self._buffer[self._read_pointer]
         self._advance_read_pointer()
+        if self._read_pointer == self._write_pointer:
+            self._isempty = True
+        self._isfull = False
         return item
 
     def get_buffer(self):
