@@ -2,7 +2,7 @@ import numpy as np
 
 from typing import Union, Optional
 
-from buffer import Buffer
+from .buffer import Buffer
 
 class StateBuffer(Buffer):
     def __init__(self, size: int, shape: tuple, namespace: Optional[tuple[str]] = None) -> None:
@@ -24,7 +24,7 @@ class StateBuffer(Buffer):
         self._namespace = namespace
         super().__init__(size=size, shape=shape)
 
-    def write(self, item: np.ndarray, position: Union[int, str]) -> bool:
+    def _write_operation(self, item: np.ndarray, position: Union[int, str]) -> bool:
         """
         Write an item to the buffer at the specified position.
 
@@ -57,7 +57,7 @@ class StateBuffer(Buffer):
         
         return True
     
-    def read(self, position: Union[int, str]) -> np.ndarray:
+    def _read_operation(self, position: Union[int, str]) -> np.ndarray:
         """
         Read an item from the buffer at the specified position.
 
@@ -87,9 +87,24 @@ class StateBuffer(Buffer):
             expected_type = str if self._namespace is not None else int
             raise ValueError(f"Expected position indexing of type {expected_type} but got {type(position)}.")
 
-    def automate(self) -> None:
+    @property
+    def is_empty(self) -> bool:
         """
-        This method is not implemented in this class
-        Calling this function does nothing
+        Check if the buffer is empty.
+
+        Returns:
+        - bool: True if the buffer is empty, False otherwise.
         """
-        pass
+        # A state buffer cannot technically be considered empty
+        return False
+
+    @property
+    def is_full(self) -> bool:
+        """
+        Check if the buffer is full.
+
+        Returns:
+        - bool: True if the buffer is full, False otherwise.
+        """
+        # A state buffer is usually always considered full
+        return True
