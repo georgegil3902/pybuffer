@@ -50,12 +50,12 @@ class Buffer(ABC):
         self._trigger_automations(self.AFTER_WRITE)
         return success
 
-    def read(self) -> np.ndarray:
+    def read(self, with_automation_results: bool = False) -> np.ndarray:
         """
         Read operation with automation triggers, but actual implementation is delegated to subclass.
         """
         self._trigger_automations(self.BEFORE_READ)
-        item = self._read_operation()  # Subclass defines how the actual read happens
+        item = self._read_operation(with_automation_results)  # Subclass defines how the actual read happens
         self._trigger_automations(self.AFTER_READ)
         return item
 
@@ -67,14 +67,14 @@ class Buffer(ABC):
         pass
 
     @abstractmethod
-    def _read_operation(self) -> np.ndarray:
+    def _read_operation(self, with_automation_results: bool = False) -> np.ndarray:
         """
         Subclass must implement this method to define how reading happens.
         """
         pass
 
     @abstractmethod
-    def get_buffer(self):
+    def get_buffer(self, with_automation_results: bool = False):
         """
         Function that returns the entire buffer
         """
